@@ -1,0 +1,95 @@
+import sqlite3
+from tabulate import tabulate
+
+# Connect to SQLite database (or create it if it doesn't exist)
+conn = sqlite3.connect('expenses.db')
+c = conn.cursor()
+
+# Create expenses table if it doesn't exist
+c.execute('''
+    CREATE TABLE IF NOT EXISTS expenses (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        date TEXT NOT NULL,
+        category TEXT NOT NULL,
+        amount REAL NOT NULL,
+        description TEXT
+    )
+''')
+conn.commit()
+
+# Function to add a new expense
+def add_expense(date, category, amount, description):
+    with conn:
+        c.execute("INSERT INTO expenses (date, category, amount, description) VALUES (?, ?, ?, ?)",
+                  (date, category, amount, description))
+    print("Expense added successfully!")
+
+# Function to view all expenses
+def view_expenses():
+    c.execute("SELECT * FROM expenses")
+    rows = c.fetchall()
+    if rows:
+        print(tabulate(rows, headers=["ID", "Date", "Category", "Amount", "Description"], tablefmt="grid"))
+    else:
+        print("No expenses found.")
+
+# Function to edit an expense
+def edit_expense(expense_id, date=None, category=None, amount=None, description=None):
+    query = "UPDATE expenses SET "
+    to_update = []
+    
+    if date:
+        query += "date = ?, "
+        to_update.append(date)
+    if category:
+        query += "category = ?, "
+        to_update.append(category)
+    if amount:
+        query += "amount = ?, "
+        to_update.append(amount)
+    if description:
+        query += "description = ?, "
+        to_update.append(description)
+    
+    if to_update:
+        query = query.rstrip(", ") + " WHERE id = ?"
+        to_update.append(expense_id)
+        with conn:
+            c.execute(query, tuple(to_update))
+        print(f"Expense {expense_id} updated successfully!")
+    else:
+        print("No fields to update.")
+
+# Function to delete an expense
+def delete_expense(expense_id):
+    with conn:
+        c.execute("DELETE FROM expenses WHERE id = ?", (expense_id,))
+    print(f"Expense {expense_id} deleted successfully!")
+
+# Function to display options menu
+def menu():
+    print("\nPersonal Expense Tracker")
+    print("1. Add Expense")
+    print("2. View Expenses")
+    print("3. Edit Expense")
+    print("4. Delete Expense")
+    print("5. Exit")
+
+if __name__ == "__main__":
+    while True:
+        menu()
+        choice = input("Select an option (1-5): ")
+        
+        if choice == '1':
+            date = input("Enter the date (YYYY-MM-DD): ")
+            category = input("Enter the category (e.g., Food, Transport, etc.): ")
+            amount = float(input("Enter the amount: "))
+            description = input("Enter a description (optional): ")
+            add_expense(date, category, amount, description)
+        
+        elif choice == '2':
+            view_expenses()
+        
+        elif choice == '3':
+            expense_id = int(input("Enter the ID of the expense to edit: "))
+            date = input("Enter new date (leave blank to ke
